@@ -50,8 +50,6 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Warna Oranye yang mendekati tema pada gambar
-    const Color primaryColor = Color(0xFFE5581A);
 
     return Scaffold(
       backgroundColor: Colors.white,
