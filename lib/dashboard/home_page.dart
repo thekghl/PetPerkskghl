@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart' hide CarouselController;
 import 'package:carousel_slider/carousel_slider.dart';
-import 'product_list_screen.dart';
+import '../products/product_list_page.dart';
+import '../notifications/notification_screen.dart';
+import '../search/search_screen.dart';
+import '../wishlist/wishlist_screen.dart';
+import '../cart/cart_screen.dart';
+import '../profile/profile_screen.dart';
 
 void main() {
   runApp(const PetPerksApp());
@@ -129,7 +134,11 @@ class _HomePageContentState extends State<HomePageContent> {
               icon: const Icon(Icons.notifications_outlined,
                   color: Colors.black, size: 24),
               onPressed: () {
-                // Navigasi ke halaman notifikasi
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const NotificationScreen(),
+                  ),
+                );
               },
             ),
             Positioned(
@@ -161,7 +170,11 @@ class _HomePageContentState extends State<HomePageContent> {
         IconButton(
           icon: const Icon(Icons.search, color: Colors.black, size: 24),
           onPressed: () {
-            // Navigasi ke halaman search
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => const SearchScreen(),
+              ),
+            );
           },
         ),
         const SizedBox(width: 8),
@@ -209,18 +222,105 @@ class _HomePageContentState extends State<HomePageContent> {
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
-                _buildDrawerItem(Icons.home, "Home", isActive: true),
-                _buildDrawerItem(Icons.shopping_bag_outlined, "Products"),
-                _buildDrawerItem(Icons.apps_outlined, "Components"),
-                _buildDrawerItem(Icons.diamond_outlined, "Pages"),
-                _buildDrawerItem(Icons.star_border, "Featured"),
-                _buildDrawerItem(Icons.favorite_border, "Wishlist"),
-                _buildDrawerItem(Icons.receipt_long_outlined, "Orders"),
-                _buildDrawerItem(Icons.chat_bubble_outline, "Chat List"),
-                _buildDrawerItem(Icons.shopping_cart_outlined, "My Cart"),
-                _buildDrawerItem(Icons.person_outline, "Profile"),
+                _buildDrawerItem(
+                  Icons.home,
+                  "Home",
+                  isActive: true,
+                  onTap: () {
+                    Navigator.pop(context);
+                  },
+                ),
+                _buildDrawerItem(
+                  Icons.shopping_bag_outlined,
+                  "Products",
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const ProductListPage(),
+                      ),
+                    );
+                  },
+                ),
+                _buildDrawerItem(
+                  Icons.star_border,
+                  "Featured",
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const ProductListPage(),
+                      ),
+                    );
+                  },
+                ),
+                _buildDrawerItem(
+                  Icons.favorite_border,
+                  "Wishlist",
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const WishlistScreen(),
+                      ),
+                    );
+                  },
+                ),
+                _buildDrawerItem(
+                  Icons.receipt_long_outlined,
+                  "Orders",
+                  onTap: () {
+                    Navigator.pop(context);
+                    // TODO: Navigate to Orders screen when created
+                  },
+                ),
+                _buildDrawerItem(
+                  Icons.chat_bubble_outline,
+                  "Chat List",
+                  onTap: () {
+                    Navigator.pop(context);
+                    // TODO: Navigate to Chat screen when created
+                  },
+                ),
+                _buildDrawerItem(
+                  Icons.shopping_cart_outlined,
+                  "My Cart",
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const CartScreen(),
+                      ),
+                    );
+                  },
+                ),
+                _buildDrawerItem(
+                  Icons.person_outline,
+                  "Profile",
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const ProfileScreen(),
+                      ),
+                    );
+                  },
+                ),
                 const Divider(),
-                _buildDrawerItem(Icons.logout, "Logout"),
+                _buildDrawerItem(
+                  Icons.logout,
+                  "Logout",
+                  onTap: () {
+                    Navigator.pop(context);
+                    // TODO: Add logout logic
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Logout functionality coming soon'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                ),
                 const Divider(),
                 // Sidebar Bottom
                 ListTile(
@@ -259,7 +359,12 @@ class _HomePageContentState extends State<HomePageContent> {
   }
 
   // Helper widget untuk item drawer
-  Widget _buildDrawerItem(IconData icon, String title, {bool isActive = false}) {
+  Widget _buildDrawerItem(
+    IconData icon,
+    String title, {
+    bool isActive = false,
+    VoidCallback? onTap,
+  }) {
     return ListTile(
       leading: Icon(icon,
           color: isActive
@@ -271,10 +376,7 @@ class _HomePageContentState extends State<HomePageContent> {
                   ? Theme.of(context).primaryColor
                   : Colors.black,
               fontWeight: isActive ? FontWeight.bold : FontWeight.normal)),
-      onTap: () {
-        Navigator.pop(context); // Tutup drawer
-        // Tambahkan logika navigasi
-      },
+      onTap: onTap ?? () => Navigator.pop(context),
     );
   }
 
@@ -415,13 +517,13 @@ class _HomePageContentState extends State<HomePageContent> {
             mainAxisSpacing: 10,
             children: [
               _buildCategoryGridItem(
-                  "Dogs", "assets/images/category/category1/1.png"),
+                  "Dogs", "assets/dog.jpg"),
               _buildCategoryGridItem(
-                  "Cats", "assets/images/category/category1/2.png"),
+                  "Cats", "assets/cat.jpg"),
               _buildCategoryGridItem(
-                  "Rabbits", "assets/images/category/category1/3.png"),
+                  "Rabbits", "assets/rabbit.jpg"),
               _buildCategoryGridItem(
-                  "Parrot", "assets/images/category/category1/4.png"),
+                  "Parrot", "assets/parrot.jpg"),
             ],
           ),
         ),
@@ -505,7 +607,7 @@ class _HomePageContentState extends State<HomePageContent> {
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(12),
                         child: Image.asset(
-                          "assets/images/category/category1/5.png",
+                          "assets/dog_grooming.jpg",
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) =>
                               Container(height: 100, color: Colors.grey.shade200),
@@ -517,7 +619,7 @@ class _HomePageContentState extends State<HomePageContent> {
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(12),
                         child: Image.asset(
-                          "assets/images/category/category1/6.png",
+                          "assets/cat_grooming.jpeg",
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) =>
                               Container(height: 100, color: Colors.grey.shade200),
@@ -556,7 +658,7 @@ class _HomePageContentState extends State<HomePageContent> {
       children: [
         _buildTitleBar(title, "See All", onTap: () {
           Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const ProductListScreen()),
+            MaterialPageRoute(builder: (_) => const ProductListPage()),
           );
         }),
         SizedBox(
@@ -582,13 +684,13 @@ class _HomePageContentState extends State<HomePageContent> {
             childAspectRatio: 0.75, // Sesuaikan rasio agar pas
             children: [
               _buildProductCard("Dog Body Belt", "\$80", "\$95",
-                  "assets/images/product/product1/pic1.png"),
+                  "assets/belt_product.jpg"),
               _buildProductCard("Dog Cloths", "\$80", "\$95",
-                  "assets/images/product/product1/pic2.png"),
+                  "assets/cloths_product.jpg"),
               _buildProductCard("Pet Bed For Dog", "\$80", "\$95",
-                  "assets/images/product/product1/pic3.png"),
+                  "assets/bed_product.jpg"),
               _buildProductCard("Dog Chew Toys", "\$80", "\$95",
-                  "assets/images/product/product1/pic4.png"),
+                  "assets/chew_toys_product.jpg"),
             ],
           ),
         ),
@@ -819,25 +921,25 @@ class _HomePageContentState extends State<HomePageContent> {
                 "Dog Body Belt",
                 "\$80",
                 "\$95",
-                "assets/images/product/product1/pic1.png",
+                "assets/belt_product.jpg",
               ),
               _buildProductCard(
                 "Dog Cloths",
                 "\$80",
                 "\$95",
-                "assets/images/product/product1/pic2.png",
+                "assets/cloths_product.jpg",
               ),
               _buildProductCard(
                 "Pet Bed For Dog",
                 "\$80",
                 "\$95",
-                "assets/images/product/product1/pic3.png",
+                "assets/bed_product.jpg",
               ),
               _buildProductCard(
                 "Dog Chew Toys",
                 "\$80",
                 "\$95",
-                "assets/images/product/product1/pic4.png",
+                "assets/chew_toys_product.jpg",
               ),
             ],
           ),
@@ -893,7 +995,7 @@ class _HomePageContentState extends State<HomePageContent> {
             "Dog Cloths",
             "\$80",
             "\$95",
-            "assets/images/product/product1/pic2.png",
+            "assets/cloths_product.jpg",
             quantity: 1,
             reviews: "2k Review",
           ),
@@ -902,7 +1004,7 @@ class _HomePageContentState extends State<HomePageContent> {
             "Pet Bed For Dog",
             "\$80",
             "\$95",
-            "assets/images/product/product1/pic3.png",
+            "assets/bed_product.jpg",
             quantity: 1,
             reviews: "2k Review",
           ),
@@ -911,7 +1013,7 @@ class _HomePageContentState extends State<HomePageContent> {
             "Dog Chew Toys",
             "\$80",
             "\$95",
-            "assets/images/product/product1/pic4.png",
+            "assets/chew_toys_product.jpg",
             quantity: 1,
             reviews: "2k Review",
           ),
@@ -1077,25 +1179,25 @@ class _HomePageContentState extends State<HomePageContent> {
               _buildPopularNearbyCard(
                 "Beagle",
                 "Special Offer",
-                "assets/images/pets/beagle.png",
+                "assets/beagle.jpg",
                 Colors.orange.shade100,
               ),
               _buildPopularNearbyCard(
                 "Labrador",
                 "Min. 70% Off",
-                "assets/images/pets/labrador.png",
+                "assets/labrador.jpeg",
                 Colors.teal.shade100,
               ),
               _buildPopularNearbyCard(
                 "Golden Retriever",
                 "Best Price",
-                "assets/images/pets/golden.png",
+                "assets/golden_retriever.jpg",
                 Colors.red.shade100,
               ),
               _buildPopularNearbyCard(
                 "Poodle",
                 "Limited Offer",
-                "assets/images/pets/poodle.png",
+                "assets/poodle.jpg",
                 Colors.pink.shade100,
               ),
             ],
@@ -1119,7 +1221,6 @@ class _HomePageContentState extends State<HomePageContent> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Expanded(
-            flex: 3,
             child: Container(
               decoration: BoxDecoration(
                 color: backgroundColor,
@@ -1141,36 +1242,33 @@ class _HomePageContentState extends State<HomePageContent> {
               ),
             ),
           ),
-          Expanded(
-            flex: 1,
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Theme.of(context).primaryColor,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Theme.of(context).primaryColor,
+                    fontWeight: FontWeight.w500,
                   ),
-                ],
-              ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
           ),
         ],
@@ -1212,7 +1310,7 @@ class _HomePageContentState extends State<HomePageContent> {
                   ),
                   child: Center(
                     child: Image.asset(
-                      'assets/images/product/product1/pic1.png',
+                      'assets/belt_product.jpg',
                       height: 180,
                       fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) => Icon(
@@ -1271,23 +1369,23 @@ class _HomePageContentState extends State<HomePageContent> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             children: [
               _buildSmallProductCard(
-                'assets/images/category/category1/1.png',
+                'assets/dog.jpg',
                 Colors.orange.shade50,
               ),
               _buildSmallProductCard(
-                'assets/images/category/category1/2.png',
+                'assets/cat.jpg',
                 Colors.pink.shade50,
               ),
               _buildSmallProductCard(
-                'assets/images/category/category1/3.png',
+                'assets/rabbit.jpg',
                 Colors.blue.shade50,
               ),
               _buildSmallProductCard(
-                'assets/images/category/category1/4.png',
+                'assets/parrot.jpg',
                 Colors.orange.shade50,
               ),
               _buildSmallProductCard(
-                'assets/images/category/category1/1.png',
+                'assets/dog.jpg',
                 Colors.teal.shade50,
               ),
             ],
@@ -1337,21 +1435,21 @@ class _HomePageContentState extends State<HomePageContent> {
                 "Dog Body Belt",
                 "\$80",
                 "\$95",
-                "assets/images/product/product1/pic1.png",
+                "assets/belt_product.jpg",
                 Colors.blue.shade50,
-              ),
-              _buildWishlistCard(
-                "Dog Body Belt",
-                "\$80",
-                "\$95",
-                "assets/images/product/product1/pic2.png",
-                Colors.green.shade50,
               ),
               _buildWishlistCard(
                 "Dog Cloths",
                 "\$80",
                 "\$95",
-                "assets/images/product/product1/pic3.png",
+                "assets/cloths_product.jpg",
+                Colors.green.shade50,
+              ),
+              _buildWishlistCard(
+                "Pet Bed",
+                "\$80",
+                "\$95",
+                "assets/bed_product.jpg",
                 Colors.orange.shade50,
               ),
             ],
@@ -1499,7 +1597,7 @@ class _HomePageContentState extends State<HomePageContent> {
                 "\$95",
                 "40% Off",
                 "2k Review",
-                "assets/images/pets/russell.png",
+                "assets/russel.png",
               ),
               _buildFeaturedNowCard(
                 "Labrador",
@@ -1507,7 +1605,7 @@ class _HomePageContentState extends State<HomePageContent> {
                 "\$95",
                 "40% Off",
                 "2k Review",
-                "assets/images/pets/labrador.png",
+                "assets/labrador.jpeg",
               ),
               _buildFeaturedNowCard(
                 "Golden Retriever",
@@ -1515,7 +1613,7 @@ class _HomePageContentState extends State<HomePageContent> {
                 "\$95",
                 "35% Off",
                 "1.8k Review",
-                "assets/images/pets/golden.png",
+                "assets/golden_retriever.jpg",
               ),
             ],
           ),
@@ -1658,7 +1756,7 @@ class _HomePageContentState extends State<HomePageContent> {
                 "20%",
                 "Get Flat \$75 Back",
                 "Up to 40% Off",
-                "assets/images/offer/offer1.png",
+                "assets/opening_offer.jpeg",
                 Colors.yellow.shade100,
               ),
               _buildFeaturedOfferCard(
@@ -1666,7 +1764,7 @@ class _HomePageContentState extends State<HomePageContent> {
                 "35%",
                 "Get Flat \$75 Back",
                 "Up to 40% Off",
-                "assets/images/offer/offer2.png",
+                "assets/pet_sitting.jpg",
                 Colors.purple.shade600,
               ),
             ],
@@ -1862,7 +1960,7 @@ class _HomePageContentState extends State<HomePageContent> {
                 "\$80",
                 "\$95",
                 "Free delivery",
-                "assets/images/product/product1/pic1.png",
+                "assets/belt_product.jpg",
                 Colors.blue.shade50,
               ),
               _buildGreatSavingCard(
@@ -1870,7 +1968,7 @@ class _HomePageContentState extends State<HomePageContent> {
                 "\$80",
                 "\$95",
                 "Free delivery",
-                "assets/images/product/product1/pic2.png",
+                "assets/cloths_product.jpg",
                 Colors.green.shade50,
               ),
               _buildGreatSavingCard(
@@ -1878,7 +1976,7 @@ class _HomePageContentState extends State<HomePageContent> {
                 "\$80",
                 "\$95",
                 "Free delivery",
-                "assets/images/product/product1/pic3.png",
+                "assets/bed_product.jpg",
                 Colors.orange.shade50,
               ),
               _buildGreatSavingCard(
@@ -1886,7 +1984,7 @@ class _HomePageContentState extends State<HomePageContent> {
                 "\$80",
                 "\$95",
                 "Free delivery",
-                "assets/images/product/product1/pic4.png",
+                "assets/chew_toys_product.jpg",
                 Colors.pink.shade50,
               ),
             ],
@@ -2005,19 +2103,19 @@ class _HomePageContentState extends State<HomePageContent> {
               _buildSponsoredCard(
                 "Pet Shop",
                 "Min. 30% Off",
-                "assets/images/sponsored/pet-shop.png",
+                "assets/pet_shop.jpeg",
                 Colors.pink.shade100,
               ),
               _buildSponsoredCard(
                 "Best Dog Food",
                 "Up To 20% Off",
-                "assets/images/sponsored/dog-food.png",
+                "assets/dog_food.jpg",
                 Colors.orange.shade100,
               ),
               _buildSponsoredCard(
-                "Pet Food",
+                "Rabbit Food",
                 "Min. 30% Off",
-                "assets/images/sponsored/pet-food.png",
+                "assets/rabbit_food.jpg",
                 Colors.orange.shade50,
               ),
             ],
