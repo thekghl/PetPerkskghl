@@ -1,251 +1,226 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:io';
 
-class ApiService {
-  // Ganti dengan URL server Anda
-  static const String baseUrl = 'http://localhost:8000/api/v1';
-  
-  // Untuk testing di emulator Android: http://10.0.2.2:8000/api/v1
-  // Untuk testing di device fisik: http://YOUR_IP:8000/api/v1
+class DataService {
+  final SupabaseClient _supabase = Supabase.instance.client;
 
-  // Get stored Firebase token
-  Future<String?> _getToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('firebase_token');
-  }
-
-  // Save Firebase token
-  Future<void> saveToken(String token) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('firebase_token', token);
-  }
-
-  // Clear token (logout)
-  Future<void> clearToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('firebase_token');
-  }
-
-  // Register user
-  Future<Map<String, dynamic>> register({
-    required String email,
-    required String password,
-    required String displayName,
-  }) async {
+  Future<String> uploadProductImage(File imageFile) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/auth/register'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': email,
-          'password': password,
-          'display_name': displayName,
-        }),
-      );
+      final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final path = 'uploads/$fileName';
 
-      return _handleResponse(response);
+      await _supabase.storage
+          .from('product-images')
+          .upload(
+            path,
+            imageFile,
+            fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
+          );
+
+      final imageUrl = _supabase.storage
+          .from('product-images')
+          .getPublicUrl(path);
+      return imageUrl;
     } catch (e) {
-      throw Exception('Registration failed: $e');
+      throw Exception('Failed to upload image: $e');
     }
   }
 
-  // Login user
-  Future<Map<String, dynamic>> login(String idToken) async {
-    try {
-      print('📡 Sending login request to backend...');
-      print('🔗 URL: $baseUrl/auth/login');
-      
-      final response = await http.post(
-        Uri.parse('$baseUrl/auth/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'id_token': idToken}),
-      );
+  // --- PROFILES ---
 
-      print('📥 Response status: ${response.statusCode}');
-      print('📥 Response body: ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}...');
-
-      return _handleResponse(response);
-    } catch (e) {
-      print('❌ Login API error: $e');
-      throw Exception('Login failed: $e');
-    }
-  }
-
-  // Get current user
-  Future<Map<String, dynamic>> getCurrentUser() async {
-    try {
-      final token = await _getToken();
-      if (token == null) throw Exception('No token found');
-
-      final response = await http.get(
-        Uri.parse('$baseUrl/auth/me'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      return _handleResponse(response);
-    } catch (e) {
-      throw Exception('Failed to get user: $e');
-    }
-  }
-
-  // Logout
-  Future<Map<String, dynamic>> logout() async {
-    try {
-      final token = await _getToken();
-      if (token == null) throw Exception('No token found');
-
-      final response = await http.post(
-        Uri.parse('$baseUrl/auth/logout'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      await clearToken();
-      return _handleResponse(response);
-    } catch (e) {
-      throw Exception('Logout failed: $e');
-    }
-  }
-
-  // Get profile
   Future<Map<String, dynamic>> getProfile() async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) throw Exception('No user logged in');
+
     try {
-      final token = await _getToken();
-      if (token == null) throw Exception('No token found');
-
-      final response = await http.get(
-        Uri.parse('$baseUrl/profile'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      return _handleResponse(response);
+      final data = await _supabase
+          .from('profiles')
+          .select()
+          .eq('id', user.id)
+          .single();
+      return data;
     } catch (e) {
-      throw Exception('Failed to get profile: $e');
+      // If profile doesn't exist, return basic user info
+      return {
+        'id': user.id,
+        'email': user.email,
+        'display_name': user.userMetadata?['display_name'],
+      };
     }
   }
 
-  // Update profile
-  Future<Map<String, dynamic>> updateProfile({
-    String? username,
+  Future<void> updateProfile({
     String? displayName,
     String? phoneNumber,
+    String? address,
   }) async {
-    try {
-      final token = await _getToken();
-      if (token == null) throw Exception('No token found');
+    final user = _supabase.auth.currentUser;
+    if (user == null) throw Exception('No user logged in');
 
-      final Map<String, dynamic> body = {};
-      if (username != null) body['username'] = username;
-      if (displayName != null) body['display_name'] = displayName;
-      if (phoneNumber != null) body['phone_number'] = phoneNumber;
+    final updates = {
+      'id': user.id,
+      'updated_at': DateTime.now().toIso8601String(),
+    };
+    if (displayName != null) updates['display_name'] = displayName;
+    if (phoneNumber != null) updates['phone_number'] = phoneNumber;
 
-      final response = await http.put(
-        Uri.parse('$baseUrl/profile'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode(body),
+    await _supabase.from('profiles').upsert(updates);
+
+    // Also update auth metadata for display name
+    if (displayName != null) {
+      await _supabase.auth.updateUser(
+        UserAttributes(data: {'display_name': displayName}),
       );
-
-      return _handleResponse(response);
-    } catch (e) {
-      throw Exception('Failed to update profile: $e');
     }
   }
 
-  // Update password
-  Future<Map<String, dynamic>> updatePassword({
-    required String newPassword,
-    required String newPasswordConfirmation,
-  }) async {
+  // --- PRODUCTS ---
+
+  Future<List<Map<String, dynamic>>> getProducts({String? category}) async {
     try {
-      final token = await _getToken();
-      if (token == null) throw Exception('No token found');
-
-      final response = await http.put(
-        Uri.parse('$baseUrl/profile/password'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'new_password': newPassword,
-          'new_password_confirmation': newPasswordConfirmation,
-        }),
-      );
-
-      return _handleResponse(response);
-    } catch (e) {
-      throw Exception('Failed to update password: $e');
-    }
-  }
-
-  // Forgot password
-  Future<Map<String, dynamic>> forgotPassword(String email) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/auth/forgot-password'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email}),
-      );
-
-      return _handleResponse(response);
-    } catch (e) {
-      throw Exception('Failed to send reset email: $e');
-    }
-  }
-
-  // Delete account
-  Future<Map<String, dynamic>> deleteAccount() async {
-    try {
-      final token = await _getToken();
-      if (token == null) throw Exception('No token found');
-
-      final response = await http.delete(
-        Uri.parse('$baseUrl/profile'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({'confirm': true}),
-      );
-
-      await clearToken();
-      return _handleResponse(response);
-    } catch (e) {
-      throw Exception('Failed to delete account: $e');
-    }
-  }
-
-  // Handle HTTP response
-  Map<String, dynamic> _handleResponse(http.Response response) {
-    print('🔍 Handling response: ${response.statusCode}');
-    
-    try {
-      final Map<String, dynamic> data = jsonDecode(response.body);
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        print('✅ Request successful');
-        return data;
-      } else {
-        final errorMessage = data['message'] ?? 'Request failed';
-        print('❌ Request failed: $errorMessage');
-        throw Exception(errorMessage);
+      var query = _supabase.from('products').select();
+      if (category != null && category != 'All') {
+        query = query.eq('category', category);
       }
+      return List<Map<String, dynamic>>.from(await query);
     } catch (e) {
-      print('❌ Error parsing response: $e');
-      if (e is Exception) rethrow;
-      throw Exception('Failed to parse response: $e');
+      print('Error fetching products: $e');
+      return [];
+    }
+  }
+
+  Future<void> addProduct(Map<String, dynamic> data) async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) throw Exception('Must be logged in to add products');
+
+    // In a real app, you might check for specific roles here
+    try {
+      await _supabase.from('products').insert({
+        ...data,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      throw Exception('Failed to add product: $e');
+    }
+  }
+
+  Future<void> updateProduct(String id, Map<String, dynamic> data) async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) throw Exception('Must be logged in to update products');
+
+    try {
+      await _supabase.from('products').update(data).eq('id', id);
+    } catch (e) {
+      throw Exception('Failed to update product: $e');
+    }
+  }
+
+  Future<void> deleteProduct(String id) async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) throw Exception('Must be logged in to delete products');
+
+    try {
+      await _supabase.from('products').delete().eq('id', id);
+    } catch (e) {
+      throw Exception('Failed to delete product: $e');
+    }
+  }
+
+  // --- CART ---
+
+  Future<List<Map<String, dynamic>>> getCartItems() async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) return [];
+
+    try {
+      final data = await _supabase
+          .from('cart_items')
+          .select('*, products(*)')
+          .eq('user_id', user.id);
+      return List<Map<String, dynamic>>.from(data);
+    } catch (e) {
+      print('Error fetching cart: $e');
+      return [];
+    }
+  }
+
+  Future<void> addToCart(String productId, {int quantity = 1}) async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) throw Exception('Please login to add to cart');
+
+    await _supabase.from('cart_items').upsert({
+      'user_id': user.id,
+      'product_id': productId,
+      'quantity':
+          quantity, // Note: This logic might need to be 'increment' if upserting, but for simple MVP valid
+    }, onConflict: 'user_id, product_id');
+  }
+
+  Future<void> removeFromCart(String productId) async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) return;
+
+    await _supabase.from('cart_items').delete().match({
+      'user_id': user.id,
+      'product_id': productId,
+    });
+  }
+
+  // --- WISHLIST ---
+
+  Future<List<Map<String, dynamic>>> getWishlist() async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) return [];
+
+    try {
+      final data = await _supabase
+          .from('wishlist_items')
+          .select('*, products(*)')
+          .eq('user_id', user.id);
+      return List<Map<String, dynamic>>.from(data);
+    } catch (e) {
+      print('Error fetching wishlist: $e');
+      return [];
+    }
+  }
+
+  Future<void> addToWishlist(String productId) async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) throw Exception('Please login');
+
+    await _supabase.from('wishlist_items').upsert({
+      'user_id': user.id,
+      'product_id': productId,
+    }, onConflict: 'user_id, product_id');
+  }
+
+  Future<void> removeFromWishlist(String productId) async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) return;
+
+    await _supabase.from('wishlist_items').delete().match({
+      'user_id': user.id,
+      'product_id': productId,
+    });
+  }
+
+  // --- ORDERS ---
+
+  Future<List<Map<String, dynamic>>> getOrders() async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) return [];
+
+    try {
+      // Simple fetch, expanded for items would be more complex
+      final data = await _supabase
+          .from('orders')
+          .select('*, order_items(*, products(*))')
+          .eq('user_id', user.id)
+          .order('created_at', ascending: false);
+      return List<Map<String, dynamic>>.from(data);
+    } catch (e) {
+      print('Error fetching orders: $e');
+      return [];
     }
   }
 }

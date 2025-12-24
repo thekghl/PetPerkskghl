@@ -1,22 +1,23 @@
 ﻿import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'supabase_config.dart';
 import 'auth/login_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Initialize Firebase with error handling
+
+  // Initialize Supabase
   try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
+    await Supabase.initialize(
+      url: SupabaseConfig.supabaseUrl,
+      anonKey: SupabaseConfig.supabaseAnonKey,
     );
-    print('Firebase initialized successfully');
+    print('✅ Supabase initialized successfully');
   } catch (e) {
-    print('Firebase initialization error: $e');
-    // Continue without Firebase for now
+    print('❌ Supabase initialization error: $e');
+    // Continue for now, but auth will fail until keys are provided
   }
-  
+
   runApp(const PetPerksApp());
 }
 

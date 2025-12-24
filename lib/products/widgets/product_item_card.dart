@@ -4,15 +4,15 @@ import '../../cart/cart_screen.dart';
 
 class ProductItemCard extends StatefulWidget {
   final String name;
-  final int price;
-  final int oldPrice;
+  final num price;
+  final num? oldPrice;
   final String imagePath;
 
   const ProductItemCard({
     super.key,
     required this.name,
     required this.price,
-    required this.oldPrice,
+    this.oldPrice,
     required this.imagePath,
   });
 
@@ -61,22 +61,41 @@ class _ProductItemCardState extends State<ProductItemCard> {
               child: Stack(
                 children: [
                   ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
-                    child: Image.asset(
-                      widget.imagePath,
-                      fit: BoxFit.cover,
-                      width: double.infinity,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(15),
                     ),
+                    child: widget.imagePath.startsWith('http')
+                        ? Image.network(
+                            widget.imagePath,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            errorBuilder: (_, __, ___) => Container(
+                              color: Colors.grey[200],
+                              child: const Icon(Icons.broken_image),
+                            ),
+                          )
+                        : Image.asset(
+                            widget.imagePath,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            errorBuilder: (_, __, ___) => Container(
+                              color: Colors.grey[200],
+                              child: const Icon(Icons.image_not_supported),
+                            ),
+                          ),
                   ),
-                  
+
                   // ===== PERUBAHAN DI SINI =====
                   Positioned(
                     top: 10,
                     right: 10,
                     child: GestureDetector(
                       onTap: _toggleFavorite,
-                      child: Icon( // <-- Container putih dihilangkan
-                        _isFavorite ? Icons.favorite : Icons.favorite_border, // <-- Perubahan ikon
+                      child: Icon(
+                        // <-- Container putih dihilangkan
+                        _isFavorite
+                            ? Icons.favorite
+                            : Icons.favorite_border, // <-- Perubahan ikon
                         color: Colors.red,
                         size: 22, // Ukuran disesuaikan
                         // Tambahkan shadow agar terlihat jelas di atas gambar
@@ -103,7 +122,10 @@ class _ProductItemCardState extends State<ProductItemCard> {
                 children: [
                   Text(
                     widget.name,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -117,16 +139,20 @@ class _ProductItemCardState extends State<ProductItemCard> {
                         children: [
                           Text(
                             '\$${widget.price}',
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                          ),
-                          Text(
-                            '\$${widget.oldPrice}',
                             style: const TextStyle(
-                              decoration: TextDecoration.lineThrough,
-                              color: Colors.grey,
-                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
                             ),
                           ),
+                          if (widget.oldPrice != null)
+                            Text(
+                              '\$${widget.oldPrice}',
+                              style: const TextStyle(
+                                decoration: TextDecoration.lineThrough,
+                                color: Colors.grey,
+                                fontSize: 12,
+                              ),
+                            ),
                         ],
                       ),
                       // Tombol Keranjang
@@ -144,7 +170,11 @@ class _ProductItemCardState extends State<ProductItemCard> {
                             color: Colors.black,
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Icon(Icons.shopping_cart_outlined, color: Colors.white, size: 20),
+                          child: const Icon(
+                            Icons.shopping_cart_outlined,
+                            color: Colors.white,
+                            size: 20,
+                          ),
                         ),
                       ),
                     ],
@@ -158,4 +188,3 @@ class _ProductItemCardState extends State<ProductItemCard> {
     );
   }
 }
-

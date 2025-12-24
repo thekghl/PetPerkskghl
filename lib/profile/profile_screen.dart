@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:petperks/wishlist/wishlist_screen.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'components/notif.dart';
 import 'components/coupons.dart';
 import 'components/track-order.dart';
@@ -12,6 +12,7 @@ import 'components/reviews.dart';
 import 'components/qna.dart';
 import '../search/search_screen.dart';
 import '../services/auth_service.dart';
+import '../services/api_service.dart'; // Contains DataService
 import '../auth/login_page.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -23,6 +24,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   String _displayName = 'User';
+  final DataService _dataService = DataService();
 
   @override
   void initState() {
@@ -31,11 +33,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _loadUserData() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      setState(() {
-        _displayName = user.displayName ?? user.email?.split('@')[0] ?? 'User';
-      });
+    try {
+      final profile = await _dataService.getProfile();
+      if (mounted) {
+        setState(() {
+          _displayName = profile['display_name'] ?? 'User';
+        });
+      }
+    } catch (e) {
+      print('Error loading profile: $e');
     }
   }
 
@@ -54,11 +60,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 color: Colors.black,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(
-                Icons.pets,
-                color: Colors.white,
-                size: 18,
-              ),
+              child: const Icon(Icons.pets, color: Colors.white, size: 18),
             ),
             const SizedBox(width: 12),
             const Text(
@@ -75,11 +77,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Stack(
             children: [
               IconButton(
-                icon: const Icon(Icons.notifications_outlined, color: Colors.black),
+                icon: const Icon(
+                  Icons.notifications_outlined,
+                  color: Colors.black,
+                ),
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const NotificationPage()),
+                    MaterialPageRoute(
+                      builder: (context) => const NotificationPage(),
+                    ),
                   );
                 },
               ),
@@ -112,11 +119,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           IconButton(
             icon: const Icon(Icons.search, color: Colors.black),
             onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const SearchScreen(),
-                ),
-              );
+              Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const SearchScreen()));
             },
           ),
         ],
@@ -166,7 +171,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
               const SizedBox(height: 24),
-              
+
               // Action Cards Grid
               Row(
                 children: [
@@ -178,7 +183,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const CouponsPage()),
+                          MaterialPageRoute(
+                            builder: (context) => const CouponsPage(),
+                          ),
                         );
                       },
                     ),
@@ -192,7 +199,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const TrackOrderPage()),
+                          MaterialPageRoute(
+                            builder: (context) => const TrackOrderPage(),
+                          ),
                         );
                       },
                     ),
@@ -210,7 +219,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const YourOrderPage()),
+                          MaterialPageRoute(
+                            builder: (context) => const YourOrderPage(),
+                          ),
                         );
                       },
                     ),
@@ -224,7 +235,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const WishlistApp()),
+                          MaterialPageRoute(
+                            builder: (context) => const WishlistApp(),
+                          ),
                         );
                       },
                     ),
@@ -232,14 +245,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
               const SizedBox(height: 32),
-              
+
               // Account Settings Section
               const Text(
                 'Account Settings',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
               _buildMenuItem(
@@ -249,7 +259,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const EditProfilePage()),
+                    MaterialPageRoute(
+                      builder: (context) => const EditProfilePage(),
+                    ),
                   );
                 },
               ),
@@ -271,7 +283,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const SaveAddressPage()),
+                    MaterialPageRoute(
+                      builder: (context) => const SaveAddressPage(),
+                    ),
                   );
                 },
               ),
@@ -287,19 +301,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 context,
                 'Notifications Settings',
                 Icons.notifications_outlined,
-                onTap: (){
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationPage()));
-                }
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const NotificationPage(),
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 32),
-              
+
               // Second Account Settings Section
               const Text(
                 'Account Settings',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
               _buildMenuItem(
@@ -309,7 +325,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const WriteReviewPage()),
+                    MaterialPageRoute(
+                      builder: (context) => const WriteReviewPage(),
+                    ),
                   );
                 },
               ),
@@ -341,7 +359,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // Handle Logout
   Future<void> _handleLogout(BuildContext context) async {
     final authService = AuthService();
-    
+
     // Show confirmation dialog
     final bool? confirm = await showDialog<bool>(
       context: context,
@@ -367,18 +385,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
       try {
         // Show loading
         showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
+          context: context,
+          barrierDismissible: false,
+          builder: (context) =>
+              const Center(child: CircularProgressIndicator()),
+        );
 
-      await authService.logout();
+        await authService.logout();
 
-      if (context.mounted) {
-        // Close loading dialog
-        Navigator.of(context).pop();          // Navigate to login page
+        if (context.mounted) {
+          // Close loading dialog
+          Navigator.of(context).pop(); // Navigate to login page
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(builder: (context) => const LoginPage()),
             (route) => false,
@@ -388,10 +405,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (context.mounted) {
           // Close loading dialog
           Navigator.of(context).pop();
-          
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Logout failed: ${e.toString().replaceAll('Exception: ', '')}'),
+              content: Text(
+                'Logout failed: ${e.toString().replaceAll('Exception: ', '')}',
+              ),
               backgroundColor: Colors.red,
             ),
           );
@@ -401,7 +420,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // MODIFIKASI: Menghapus Icon dari _buildActionCard
-  Widget _buildActionCard(BuildContext context, String title, IconData icon, {VoidCallback? onTap}) {
+  Widget _buildActionCard(
+    BuildContext context,
+    String title,
+    IconData icon, {
+    VoidCallback? onTap,
+  }) {
     return Container(
       height: 50,
       decoration: BoxDecoration(
@@ -442,7 +466,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildMenuItem(BuildContext context, String title, IconData icon, {VoidCallback? onTap}) {
+  Widget _buildMenuItem(
+    BuildContext context,
+    String title,
+    IconData icon, {
+    VoidCallback? onTap,
+  }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
@@ -476,11 +505,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                 ),
-                const Icon(
-                  Icons.chevron_right,
-                  color: Colors.black,
-                  size: 24,
-                ),
+                const Icon(Icons.chevron_right, color: Colors.black, size: 24),
               ],
             ),
           ),
@@ -526,35 +551,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ],
                 ),
                 const SizedBox(height: 20),
-                _buildLanguageOption(
-                  context,
-                  '🇮🇳',
-                  'Indian',
-                ),
+                _buildLanguageOption(context, '🇮🇳', 'Indian'),
                 const Divider(height: 1, thickness: 1),
-                _buildLanguageOption(
-                  context,
-                  '🇺🇸',
-                  'English',
-                ),
+                _buildLanguageOption(context, '🇺🇸', 'English'),
                 const Divider(height: 1, thickness: 1),
-                _buildLanguageOption(
-                  context,
-                  '🇩🇪',
-                  'German',
-                ),
+                _buildLanguageOption(context, '🇩🇪', 'German'),
                 const Divider(height: 1, thickness: 1),
-                _buildLanguageOption(
-                  context,
-                  '🇮🇹',
-                  'Italian',
-                ),
+                _buildLanguageOption(context, '🇮🇹', 'Italian'),
                 const Divider(height: 1, thickness: 1),
-                _buildLanguageOption(
-                  context,
-                  '🇪🇸',
-                  'Spanish',
-                ),
+                _buildLanguageOption(context, '🇪🇸', 'Spanish'),
               ],
             ),
           ),
@@ -563,7 +568,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildLanguageOption(BuildContext context, String flag, String language) {
+  Widget _buildLanguageOption(
+    BuildContext context,
+    String flag,
+    String language,
+  ) {
     return InkWell(
       onTap: () {
         Navigator.pop(context);
@@ -579,10 +588,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         padding: const EdgeInsets.symmetric(vertical: 16),
         child: Row(
           children: [
-            Text(
-              flag,
-              style: const TextStyle(fontSize: 32),
-            ),
+            Text(flag, style: const TextStyle(fontSize: 32)),
             const SizedBox(width: 16),
             Expanded(
               child: Text(
@@ -594,11 +600,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
             ),
-            const Icon(
-              Icons.chevron_right,
-              color: Colors.black,
-              size: 24,
-            ),
+            const Icon(Icons.chevron_right, color: Colors.black, size: 24),
           ],
         ),
       ),

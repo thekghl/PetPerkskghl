@@ -1,15 +1,13 @@
-import 'package:firebase_auth/firebase_auth.dart';
-import 'api_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final ApiService _apiService = ApiService();
+  final SupabaseClient _supabase = Supabase.instance.client;
 
   // Get current user
-  User? get currentUser => _auth.currentUser;
+  User? get currentUser => _supabase.auth.currentUser;
 
   // Auth state changes
-  Stream<User?> get authStateChanges => _auth.authStateChanges();
+  Stream<AuthState> get authStateChanges => _supabase.auth.onAuthStateChange;
 
   // Register with email and password
   Future<Map<String, dynamic>> registerWithEmailPassword({
@@ -19,60 +17,42 @@ class AuthService {
   }) async {
     try {
       print('🔥 Starting registration...');
-      print('📧 Email: $email');
-      
-      // 1. Create user in Firebase first (client-side)
-      print('📝 Creating user in Firebase...');
-      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+
+      // 1. Sign up with Supabase Auth
+      final AuthResponse res = await _supabase.auth.signUp(
         email: email,
         password: password,
+        data: {'display_name': displayName},
       );
-      print('✅ Firebase user created: ${userCredential.user?.uid}');
 
-      // 2. Update display name
-      await userCredential.user?.updateDisplayName(displayName);
-      await userCredential.user?.reload();
-      
-      // Get fresh user data to confirm display name
-      User? updatedUser = _auth.currentUser;
-      print('✅ Display name updated: ${updatedUser?.displayName}');
+      final User? user = res.user;
 
-      // 3. Get ID token
-      String? idToken = await updatedUser?.getIdToken();
-      if (idToken == null) {
-        throw Exception('Failed to get Firebase token');
+      if (user != null) {
+        // 2. Create profile entry (Trigger usually handles this, but we'll do it manually to be safe or if trigger isn't set)
+        // Note: Ideally, use a Database Trigger in Supabase to create a profile on new user.
+        // For now, we'll try to insert/upsert to 'profiles' table.
+        try {
+          await _supabase.from('profiles').upsert({
+            'id': user.id,
+            'email': email,
+            'display_name': displayName,
+            'created_at': DateTime.now().toIso8601String(),
+          });
+        } catch (e) {
+          print('⚠️ Profile creation warning: $e');
+          // Ignore if trigger already did it
+        }
       }
-      print('✅ Got Firebase token');
-
-      // 4. Sync to backend with token
-      print('🔄 Syncing to backend...');
-      final backendResponse = await _apiService.login(idToken);
-      print('✅ Backend sync successful');
-
-      // 5. Sign out after successful registration
-      // User needs to login separately with their credentials
-      print('🚪 Signing out after registration...');
-      await _auth.signOut();
 
       return {
         'success': true,
-        'message': 'Registration successful! Please login with your credentials.',
-        'user': updatedUser,
-        'backend_response': backendResponse,
+        'message':
+            'Registration successful! Please check your email for confirmation.',
+        'user': user,
       };
-    } on FirebaseAuthException catch (e) {
-      print('❌ Firebase error: ${e.code} - ${e.message}');
-      String message = 'Registration failed';
-      if (e.code == 'weak-password') {
-        message = 'The password provided is too weak.';
-      } else if (e.code == 'email-already-in-use') {
-        message = 'An account already exists for that email.';
-      } else if (e.code == 'invalid-email') {
-        message = 'The email address is not valid.';
-      } else {
-        message = 'Registration failed: ${e.message}';
-      }
-      throw Exception(message);
+    } on AuthException catch (e) {
+      print('❌ Registration error: ${e.message}');
+      throw Exception(e.message);
     } catch (e) {
       print('❌ Registration error: $e');
       throw Exception('Registration failed: $e');
@@ -86,54 +66,16 @@ class AuthService {
   }) async {
     try {
       print('🔐 Starting login...');
-      print('📧 Email: $email');
-      
-      // 1. Sign in with Firebase
-      print('🔥 Signing in to Firebase...');
-      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+
+      final AuthResponse res = await _supabase.auth.signInWithPassword(
         email: email,
         password: password,
       );
-      print('✅ Firebase login successful: ${userCredential.user?.uid}');
 
-      // 2. Get ID token
-      String? idToken = await userCredential.user?.getIdToken();
-      if (idToken == null) {
-        throw Exception('Failed to get ID token');
-      }
-      print('✅ Got Firebase token');
-
-      // 3. Login to backend
-      print('🔄 Syncing with backend...');
-      final backendResponse = await _apiService.login(idToken);
-      print('✅ Backend sync successful');
-
-      // 4. Save token
-      await _apiService.saveToken(idToken);
-
-      return {
-        'success': true,
-        'message': 'Login successful',
-        'user': userCredential.user,
-        'backend_response': backendResponse,
-      };
-    } on FirebaseAuthException catch (e) {
-      print('❌ Firebase auth error: ${e.code} - ${e.message}');
-      String message = 'Login failed';
-      if (e.code == 'user-not-found') {
-        message = 'No user found for that email.';
-      } else if (e.code == 'wrong-password') {
-        message = 'Wrong password provided.';
-      } else if (e.code == 'invalid-email') {
-        message = 'The email address is not valid.';
-      } else if (e.code == 'user-disabled') {
-        message = 'This user has been disabled.';
-      } else if (e.code == 'invalid-credential') {
-        message = 'Invalid email or password.';
-      } else {
-        message = 'Login failed: ${e.message}';
-      }
-      throw Exception(message);
+      return {'success': true, 'message': 'Login successful', 'user': res.user};
+    } on AuthException catch (e) {
+      print('❌ Login error: ${e.message}');
+      throw Exception(e.message);
     } catch (e) {
       print('❌ Login error: $e');
       throw Exception('Login failed: $e');
@@ -143,49 +85,19 @@ class AuthService {
   // Logout
   Future<void> logout() async {
     try {
-      // 1. Logout from backend first
-      await _apiService.logout();
-
-      // 2. Sign out from Firebase
-      await _auth.signOut();
+      await _supabase.auth.signOut();
     } catch (e) {
       print('❌ Logout error: $e');
-      // Even if backend logout fails, sign out from Firebase
-      await _auth.signOut();
       throw Exception('Logout failed: $e');
     }
   }
 
-  // Refresh token (should be called periodically, e.g., every 50 minutes)
-  Future<String?> refreshToken() async {
-    try {
-      User? user = _auth.currentUser;
-      if (user == null) return null;
-
-      // Force refresh token
-      String? newToken = await user.getIdToken(true);
-      if (newToken != null) {
-        await _apiService.saveToken(newToken);
-      }
-      return newToken;
-    } catch (e) {
-      throw Exception('Failed to refresh token: $e');
-    }
-  }
-
-  // Send password reset email
+  // Reset password
   Future<void> sendPasswordResetEmail(String email) async {
     try {
-      await _auth.sendPasswordResetEmail(email: email);
-      await _apiService.forgotPassword(email);
-    } on FirebaseAuthException catch (e) {
-      String message = 'Failed to send reset email';
-      if (e.code == 'user-not-found') {
-        message = 'No user found for that email.';
-      } else if (e.code == 'invalid-email') {
-        message = 'The email address is not valid.';
-      }
-      throw Exception(message);
+      await _supabase.auth.resetPasswordForEmail(email);
+    } on AuthException catch (e) {
+      throw Exception(e.message);
     } catch (e) {
       throw Exception('Failed to send reset email: $e');
     }
@@ -194,46 +106,22 @@ class AuthService {
   // Update password
   Future<void> updatePassword(String newPassword) async {
     try {
-      User? user = _auth.currentUser;
-      if (user == null) throw Exception('No user logged in');
-
-      await user.updatePassword(newPassword);
-      await _apiService.updatePassword(
-        newPassword: newPassword,
-        newPasswordConfirmation: newPassword,
-      );
-    } on FirebaseAuthException catch (e) {
-      String message = 'Failed to update password';
-      if (e.code == 'weak-password') {
-        message = 'The password provided is too weak.';
-      } else if (e.code == 'requires-recent-login') {
-        message = 'Please re-login and try again.';
-      }
-      throw Exception(message);
+      await _supabase.auth.updateUser(UserAttributes(password: newPassword));
+    } on AuthException catch (e) {
+      throw Exception(e.message);
     } catch (e) {
       throw Exception('Failed to update password: $e');
     }
   }
 
   // Delete account
+  // Note: Only Service Role can delete users usually, or requires special function.
+  // For now, we will mark as deleted or delete profile.
+  // Deleting the auth user from client side is tricky without admin API.
   Future<void> deleteAccount() async {
-    try {
-      // 1. Delete from backend
-      await _apiService.deleteAccount();
-
-      // 2. Delete from Firebase
-      User? user = _auth.currentUser;
-      if (user != null) {
-        await user.delete();
-      }
-    } on FirebaseAuthException catch (e) {
-      String message = 'Failed to delete account';
-      if (e.code == 'requires-recent-login') {
-        message = 'Please re-login and try again.';
-      }
-      throw Exception(message);
-    } catch (e) {
-      throw Exception('Failed to delete account: $e');
-    }
+    // This often requires an Edge Function or RPC if "Enable delete user from client" is disabled.
+    throw Exception(
+      'Delete account requires admin privileges or backend function.',
+    );
   }
 }
