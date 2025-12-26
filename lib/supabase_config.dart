@@ -1,5 +1,8 @@
 class SupabaseConfig {
-  static const String supabaseUrl = 'https://chynoxvrhjyszzbzfufj.supabase.co';
+  static const String supabaseUrl = 'https://ylbstfmzysjgcwbyxcmh.supabase.co';
   static const String supabaseAnonKey =
-      'sb_publishable_yH3zFQoH-5LrALoiNmTM2Q_sYAYmORr';
+      'sb_publishable_MMB619qZJ7K067lzQUXWzw_wkGP-X-w';
+
+  // Storage buckets
+  static const String productImagesBucket = 'product-images';
 }
