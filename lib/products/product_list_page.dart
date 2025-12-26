@@ -180,11 +180,7 @@ class _ProductListPageState extends State<ProductListPage> {
             _loadProducts(); // Refresh in case of edit/delete
           },
           child: ProductItemCard(
-            productId: product['id'],
-            name: product['name'],
-            price: product['price'],
-            oldPrice: product['oldPrice'],
-            imagePath: product['imagePath'],
+            product: product,
           ),
         );
       },
@@ -347,7 +343,7 @@ class _ProductListPageState extends State<ProductListPage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'Samar',
+                    'Damar',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 18,

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../wishlist/wishlist_screen.dart';
 import '../../cart/cart_screen.dart';
+import '../product_detail_page.dart';
 
 // 1. Diubah menjadi StatefulWidget
 class ProductListRow extends StatefulWidget {
@@ -28,7 +28,7 @@ class _ProductListRowState extends State<ProductListRow> {
       onTap: () {
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (_) => const ProductDetailScreen(details: dummyDetailData),
+            builder: (_) => ProductDetailPage(product: widget.product),
           ),
         );
       },
