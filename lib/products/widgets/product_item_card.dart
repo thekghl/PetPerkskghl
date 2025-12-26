@@ -1,22 +1,13 @@
 import 'package:flutter/material.dart';
-import '../../wishlist/wishlist_screen.dart';
 import '../../cart/cart_screen.dart';
 import '../../services/api_service.dart';
 
 class ProductItemCard extends StatefulWidget {
-  final String productId;
-  final String name;
-  final num price;
-  final num? oldPrice;
-  final String imagePath;
+  final Map<String, dynamic> product;
 
   const ProductItemCard({
     super.key,
-    required this.productId,
-    required this.name,
-    required this.price,
-    this.oldPrice,
-    required this.imagePath,
+    required this.product,
   });
 
   @override
@@ -35,22 +26,14 @@ class _ProductItemCardState extends State<ProductItemCard> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => const ProductDetailScreen(details: dummyDetailData),
-          ),
-        );
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(15),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              spreadRadius: 1,
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
               blurRadius: 5,
               offset: const Offset(0, 3),
             ),
@@ -67,9 +50,9 @@ class _ProductItemCardState extends State<ProductItemCard> {
                     borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(15),
                     ),
-                    child: widget.imagePath.startsWith('http')
+                    child: (widget.product['imagePath'] ?? '').startsWith('http')
                         ? Image.network(
-                            widget.imagePath,
+                            widget.product['imagePath'],
                             fit: BoxFit.cover,
                             width: double.infinity,
                             errorBuilder: (_, __, ___) => Container(
@@ -78,7 +61,7 @@ class _ProductItemCardState extends State<ProductItemCard> {
                             ),
                           )
                         : Image.asset(
-                            widget.imagePath,
+                            widget.product['imagePath'] ?? 'assets/belt_product.jpg',
                             fit: BoxFit.cover,
                             width: double.infinity,
                             errorBuilder: (_, __, ___) => Container(
@@ -124,7 +107,7 @@ class _ProductItemCardState extends State<ProductItemCard> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    widget.name,
+                    widget.product['name'] ?? 'No name',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
@@ -141,15 +124,15 @@ class _ProductItemCardState extends State<ProductItemCard> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '\$${widget.price}',
+                            '\$${widget.product['price']}',
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 18,
                             ),
                           ),
-                          if (widget.oldPrice != null)
+                          if (widget.product['oldPrice'] != null)
                             Text(
-                              '\$${widget.oldPrice}',
+                              '\$${widget.product['oldPrice']}',
                               style: const TextStyle(
                                 decoration: TextDecoration.lineThrough,
                                 color: Colors.grey,
@@ -163,7 +146,7 @@ class _ProductItemCardState extends State<ProductItemCard> {
                         onTap: () async {
                           try {
                             final ds = DataService();
-                            await ds.addToCart(widget.productId);
+                            await ds.addToCart(widget.product['id']);
                             if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('Added to cart')),
@@ -199,7 +182,6 @@ class _ProductItemCardState extends State<ProductItemCard> {
             ),
           ],
         ),
-      ),
     );
   }
 }

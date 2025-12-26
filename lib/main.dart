@@ -32,7 +32,6 @@ class PetPerksApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      // Temporary: Always show login page until Firebase is configured
       home: const LoginPage(),
       debugShowCheckedModeBanner: false,
     );
